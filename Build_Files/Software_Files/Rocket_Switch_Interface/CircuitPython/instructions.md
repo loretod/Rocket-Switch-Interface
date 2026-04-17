@@ -1,35 +1,25 @@
-# CircuitPython Installation
+# CircuitPython Firmware Installation
 
 To install the CircuitPython Code:
 
-1. Download the following files and folders:
+1. Download the following file:
 
 - code.py
+
+As of CircuitPython 10, the adafruit_hid library is built in. If working with older verions, you will need to download and place the following folder in the CIRCUITPY lib folder.
 - adafruit_hid folder
-- adafruit-circuitpython...uf2
 
 2. If you haven't installed CircuitPython to the board previously, double-click the reset button on the board to enter bootloader mode. Drag the .uf2 files into the BOOT drive that appears.
 
 3. Drag and drop the code.py file into the drive.
 
-4. Drag the adafruit_hid folder into the lib folder in the drive.
+To customize the HID commands sent for each switch press: 
+1. open the **rocket-switch-configurator.html** file in the browser of your choice.
 
-Note: If you are on a Mac and receive a memory error, you may need to copy the folder using command line instead of dragging and dropping. You will need to:
+2. Select the desired command for each switch. First selecting the desired HID type (keyboard, media control, or mouse action) the the desired action.
 
-- Open the Terminal app 
-- Navigate to the location of the folder most likely you'll need to enter: </br>
-```cd Downloads```
+3. Press the download button and a config.py file will generate in the default download location on your computer.
 
-- To copy the entire folder and internal files type: </br>
-```cp -rX adafruit-hid /Volumes/CIRCUITPY/lib```
+4. Drag and drop the config.py file into the CIRCUITPY drive.
 
-You should now be able to see the adafruit-hid folder inside the lib folder.
-
-That's it! Your Rocket Switch Interface will now send a Tab and Space when your connected switches are pressed.
-
-If you'd like to change the keys being sent: 
-1. visit the [Adafruit HID Documentation](https://docs.circuitpython.org/projects/hid/en/latest/_modules/adafruit_hid/keycode.html) for the complete list of keycodes. 
-
-2. Open the ```code.py``` file in a simple text editor or better yet a code editor if you have one installed.
-3. Type the desired keycode on line number 25 replacing the TAB or SPACE.
-4. Save your file and the updates will automatically be applied.
+You may need to press the reset button to activate the changes.

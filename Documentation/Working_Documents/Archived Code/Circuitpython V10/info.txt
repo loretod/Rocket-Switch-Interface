@@ -1,0 +1,5 @@
+This version uses CP v10 that has the neopixel and adafruit_hid libraries built into the Trinkey Rotary board.
+
+The timing is improved for interaction with websites such as the Makey Makey apps and has three modes (keyboard, media control, and mouse).
+
+There are two variables at the top of the program to indicate the desired keycode for Mode 0

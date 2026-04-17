@@ -111,10 +111,9 @@ const colorStruct colorProperty[] {
 
 //Switch properties 
 const switchStruct switchProperty[] {
-    {1,'a', KEY_F1, 5, 6},                             //{1=dot,'a',  KEY_F1, mouse action 5, 6=red}
-    {2,'b', KEY_F2, 6, 5}                              //{2=dash,'b',KEY_F2, mouse action 6, 5=blue}
+    {1,'a', KEY_TAB, 5, 6},                             //{1=dot,'a',  KEY_F1, mouse action 5, 6=red}
+    {2,'b', KEY_RETURN, 6, 5}                              //{2=dash,'b',KEY_F2, mouse action 6, 5=blue}
 };
-
 
 
 //Settings Action properties 
@@ -133,7 +132,6 @@ const modeStruct modeProperty[] {
     {3,"Mouse Switch",7},
     {4,"Settings",4}
 };
-
 
 //Setup NeoPixel LED
 Adafruit_NeoPixel ledPixels = Adafruit_NeoPixel(1, LED_PIN, NEO_GRB + NEO_KHZ800);

@@ -1,64 +1,97 @@
-# SPDX-FileCopyrightText: 2018 Kattni Rembor for Adafruit Industries
-#
-# SPDX-License-Identifier: MIT
-# Modified by: Loreto Dumitrescu
-# CircuitPython code for the Rocket Switch Interface designed by Milad from Makers Making Change. 
-# Project Details: https://makersmakingchange.com/project/rocket-switch-interface/
-
-"""CircuitPython Rocket Switch Interface- Keyboard"""
-import time
-
 import board
 import digitalio
+import neopixel
+import time
 import usb_hid
 from adafruit_hid.keyboard import Keyboard
-from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS
 from adafruit_hid.keycode import Keycode
+from adafruit_hid.consumer_control import ConsumerControl
+from adafruit_hid.consumer_control_code import ConsumerControlCode
+from adafruit_hid.mouse import Mouse
 
-# The pins we'll use, each will have an internal pullup
-keypress_pins = [board.ROTA, board.SWITCH]
-# Our array of key objects
-key_pin_array = []
-# The Keycode sent for each button
-# To view a complete list of available keycodes: 
-# https://docs.circuitpython.org/projects/hid/en/latest/_modules/adafruit_hid/keycode.html
-keys_pressed = [Keycode.TAB, Keycode.SPACE]
+# === Load config.py ===
+try:
+    import config
+    raw_config = config.CONFIG.get("modes", {})
+    print("Config loaded from config.py")
+except (ImportError, AttributeError):
+    print("config.py not found or invalid — using defaults")
+    raw_config = {
+        "0": {"rota": {"type": "keyboard", "keys": ["TAB"]},
+              "switch": {"type": "keyboard", "keys": ["ENTER"]}},
+        "1": {"rota": {"type": "consumer", "code": "SCAN_NEXT_TRACK"},
+              "switch": {"type": "consumer", "code": "PLAY_PAUSE"}},
+        "2": {"rota": {"type": "mouse", "button": "RIGHT_BUTTON"},
+              "switch": {"type": "mouse", "button": "LEFT_BUTTON"}},
+    }
 
-# The keyboard object!
-time.sleep(1)  # Sleep for a bit to avoid a race condition on some systems
-keyboard = Keyboard(usb_hid.devices)
-keyboard_layout = KeyboardLayoutUS(keyboard)  # We're in the US :)
+# === LED colors per mode ===
+MODE_COLORS = [
+    (0, 0, 255),       # Blue
+    (0, 255, 0),       # Green
+    (255, 0, 255),     # Magenta
+    (255, 200, 0),     # Yellow
+]
 
-# Make all pin objects inputs with pullups
-for pin in keypress_pins:
-    key_pin = digitalio.DigitalInOut(pin)
-    key_pin.direction = digitalio.Direction.INPUT
-    key_pin.pull = digitalio.Pull.UP
-    key_pin_array.append(key_pin)
+# === HID Hardware init ===
+pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.1)
+kbd = Keyboard(usb_hid.devices)
+cc = ConsumerControl(usb_hid.devices)
+mouse = Mouse(usb_hid.devices)
 
-# Creates an instance of the on board light and sets it as an output
-led = digitalio.DigitalInOut(board.NEOPIXEL)
-led.direction = digitalio.Direction.OUTPUT
+rota = digitalio.DigitalInOut(board.ROTA)
+rota.direction = digitalio.Direction.INPUT
+rota.pull = digitalio.Pull.UP
 
-print("Waiting for key pin...")
+switch = digitalio.DigitalInOut(board.SWITCH)
+switch.direction = digitalio.Direction.INPUT
+switch.pull = digitalio.Pull.UP
+
+# === HID logic ===
+def do_action(action, is_press):
+    t = action.get("type")
+    if t == "keyboard":
+        codes = [getattr(Keycode, k, None) for k in action.get("keys", [])]
+        codes = [c for c in codes if c is not None]
+        if is_press:
+            kbd.press(*codes)
+        else:
+            kbd.release_all()
+    elif t == "consumer" and is_press:
+        code = getattr(ConsumerControlCode, action.get("code", ""), None)
+        if code: cc.send(code)
+    elif t == "mouse" and is_press:
+        btn_map = {"LEFT_BUTTON": Mouse.LEFT_BUTTON, "RIGHT_BUTTON": Mouse.RIGHT_BUTTON, "MIDDLE_BUTTON": Mouse.MIDDLE_BUTTON}
+        btn = btn_map.get(action.get("button", ""), Mouse.LEFT_BUTTON)
+        mouse.click(btn)
+
+# === Main State & Loop ===
+mode = 0
+rota_pressed = False
+switch_pressed = False
+pixel.fill(MODE_COLORS[mode])
 
 while True:
-    # Check each pin
-    for key_pin in key_pin_array:
-        if not key_pin.value:  # Is it grounded?
-            i = key_pin_array.index(key_pin)
-            print("Pin #%d is grounded." % i)
+    r_state = not rota.value
+    s_state = not switch.value
 
-            # Turn on the red LED
-            led.value = True
+    # Cycle Mode (Both Pressed)
+    if r_state and s_state and not (rota_pressed and switch_pressed):
+        mode = (mode + 1) % 4
+        pixel.fill(MODE_COLORS[mode])
+        time.sleep(0.4)
+        continue
 
-            while not key_pin.value:
-                pass  # Wait for it to be ungrounded!            
-            key = keys_pressed[i] # Get the keycode to press
-            keyboard.press(key)  # "Press"...
-            keyboard.release_all()  # ..."Release"!
+    # Handle ROTA
+    if r_state != rota_pressed:
+        action = raw_config.get(str(mode), {}).get("rota", {})
+        do_action(action, r_state)
+        rota_pressed = r_state
 
-            # Turn off the red LED
-            led.value = False
+    # Handle SWITCH
+    if s_state != switch_pressed:
+        action = raw_config.get(str(mode), {}).get("switch", {})
+        do_action(action, s_state)
+        switch_pressed = s_state
 
     time.sleep(0.01)
